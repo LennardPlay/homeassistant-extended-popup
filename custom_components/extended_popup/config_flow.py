@@ -1,9 +1,6 @@
 """Config flow for Extended Entity Popup integration."""
-from typing import Any
 import voluptuous as vol
-
 from homeassistant import config_entries
-from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN
 
@@ -13,9 +10,7 @@ class ExtendedPopupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_user(self, user_input=None):
         """Handle the initial step."""
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")

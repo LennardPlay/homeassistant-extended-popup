@@ -38,7 +38,6 @@ def async_setup_websocket_api(hass: HomeAssistant) -> None:
 
 
 @websocket_api.websocket_command(SCHEMA_WS_GET_CARDS)
-@websocket_api.async_response
 async def ws_get_cards(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
 ) -> None:
@@ -51,7 +50,6 @@ async def ws_get_cards(
 
 
 @websocket_api.websocket_command(SCHEMA_WS_SAVE_CARDS)
-@websocket_api.async_response
 async def ws_save_cards(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict
 ) -> None:

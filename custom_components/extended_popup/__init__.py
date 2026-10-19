@@ -2,10 +2,8 @@
 import logging
 import os
 from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.storage import Store
-from homeassistant.components.frontend import add_extra_js_url
 
 from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION
 from .websocket_api import async_setup_websocket_api
@@ -32,16 +30,20 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             js_path,
             cache_headers=False,
         )
-        add_extra_js_url(hass, f"{URL_BASE}/homeassistant-extended-popup.js")
+        try:
+            from homeassistant.components.frontend import add_extra_js_url
+            add_extra_js_url(hass, f"{URL_BASE}/homeassistant-extended-popup.js")
+        except Exception as err:
+            _LOGGER.debug("Could not add_extra_js_url: %s", err)
 
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry) -> bool:
     """Set up from a config entry."""
     return await async_setup(hass, {})
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry) -> bool:
     """Unload a config entry."""
     return True
