@@ -36,7 +36,6 @@
 
       if (!dialog) return;
 
-      // Ensure dialog is currently open
       const isOpened = dialog.hasAttribute("open") || dialog.open || dialog.shadowRoot?.querySelector("ha-dialog")?.open;
       if (!isOpened) return;
 
@@ -208,12 +207,19 @@
     }
 
     openCardPicker() {
+      const lovelaceCtx = {
+        config: { views: [] },
+        editMode: true,
+        saveConfig: () => {},
+      };
+
       const event = new CustomEvent("show-dialog", {
         bubbles: true,
         composed: true,
         detail: {
           dialogTag: "hui-dialog-create-card",
           dialogParams: {
+            lovelace: lovelaceCtx,
             cardPicked: async (cardConfig) => {
               this.cards.push(cardConfig);
               await this.saveCards();
@@ -232,12 +238,19 @@
 
     openCardEditor(index) {
       const currentConfig = this.cards[index];
+      const lovelaceCtx = {
+        config: { views: [] },
+        editMode: true,
+        saveConfig: () => {},
+      };
+
       const event = new CustomEvent("show-dialog", {
         bubbles: true,
         composed: true,
         detail: {
           dialogTag: "hui-dialog-edit-card",
           dialogParams: {
+            lovelace: lovelaceCtx,
             cardConfig: currentConfig,
             saveCard: async (newConfig) => {
               this.cards[index] = newConfig;
