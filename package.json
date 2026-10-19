@@ -1,0 +1,18 @@
+{
+  "name": "homeassistant-extended-popup",
+  "version": "1.0.0",
+  "description": "Extend Home Assistant entity popup dialogs with custom Lovelace cards per entity.",
+  "main": "src/homeassistant-extended-popup.js",
+  "scripts": {
+    "build": "mkdir -p dist custom_components/extended_popup/frontend && cp src/homeassistant-extended-popup.js dist/homeassistant-extended-popup.js && cp src/homeassistant-extended-popup.js custom_components/extended_popup/frontend/homeassistant-extended-popup.js"
+  },
+  "keywords": [
+    "home-assistant",
+    "hacs",
+    "lovelace",
+    "popup",
+    "cards"
+  ],
+  "author": "",
+  "license": "MIT"
+}
