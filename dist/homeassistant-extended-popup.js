@@ -39,7 +39,6 @@
       this.hass = this.getHass();
       if (!this.hass) return;
 
-      // Extract entityId from dialog
       const entityId = dialog.entityId || dialog._entityId || dialog.stateObj?.entity_id;
       if (!entityId) return;
 
@@ -55,7 +54,6 @@
       const shadow = dialog.shadowRoot;
       if (!shadow) return;
 
-      // Ensure container exists
       let container = shadow.querySelector("#extended-popup-container");
       if (!container) {
         container = document.createElement("div");
@@ -78,10 +76,6 @@
 
       const isAdmin = this.hass?.user?.is_admin;
       if (!isAdmin) return;
-
-      // Find overflow / 3-dots menu button or header bar
-      const overflowMenu = shadow.querySelector("ha-icon-button-prev") || shadow.querySelector("ha-header-bar") || shadow.querySelector(".header") || shadow.querySelector("ha-dialog");
-      if (!overflowMenu) return;
 
       let editBtn = shadow.querySelector("#extended-popup-edit-toggle");
       if (!editBtn) {
@@ -140,7 +134,6 @@
 
       const helpers = window.loadCardHelpers ? await window.loadCardHelpers() : null;
 
-      // Render existing cards
       for (let index = 0; index < this.cards.length; index++) {
         const cardConfig = this.cards[index];
         const cardWrapper = document.createElement("div");
@@ -157,7 +150,6 @@
           cardWrapper.appendChild(fallback);
         }
 
-        // Add edit controls in edit mode
         if (this.editMode) {
           const toolbar = document.createElement("div");
           toolbar.style.cssText = `
@@ -172,14 +164,12 @@
             z-index: 10;
           `;
 
-          // Edit card button
           const editBtn = document.createElement("button");
           editBtn.innerHTML = "✏️";
           editBtn.title = "Edit card";
           editBtn.style.cssText = "background: none; border: none; color: white; cursor: pointer; font-size: 14px;";
           editBtn.onclick = () => this.openCardEditor(index);
 
-          // Delete card button
           const deleteBtn = document.createElement("button");
           deleteBtn.innerHTML = "🗑️";
           deleteBtn.title = "Delete card";
@@ -198,7 +188,6 @@
         this.container.appendChild(cardWrapper);
       }
 
-      // Add Plus button in edit mode
       if (this.editMode) {
         const addCardBtn = document.createElement("ha-button");
         addCardBtn.setAttribute("outlined", "");
@@ -210,13 +199,11 @@
     }
 
     openCardPicker() {
-      // Trigger HA standard show-dialog for card picker
       const event = new CustomEvent("show-dialog", {
         bubbles: true,
         composed: true,
         detail: {
           dialogTag: "hui-card-picker",
-          dialogImport: () => import("frontend/src/dialogs/more-info/ha-more-info-dialog"),
           dialogParams: {
             cardPicked: async (cardConfig) => {
               this.cards.push(cardConfig);
@@ -235,7 +222,7 @@
         bubbles: true,
         composed: true,
         detail: {
-          dialogTag: "hui-card-editor",
+          dialogTag: "hui-dialog-edit-card",
           dialogParams: {
             cardConfig: currentConfig,
             saveCard: async (newConfig) => {
