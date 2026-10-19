@@ -36,16 +36,23 @@
 
       if (!dialog) return;
 
+      // Ensure dialog is currently open
+      const isOpened = dialog.hasAttribute("open") || dialog.open || dialog.shadowRoot?.querySelector("ha-dialog")?.open;
+      if (!isOpened) return;
+
       this.hass = this.getHass();
       if (!this.hass) return;
 
       const entityId = dialog.entityId || dialog._entityId || dialog.stateObj?.entity_id;
       if (!entityId) return;
 
-      if (this.dialog !== dialog || this.currentEntityId !== entityId) {
+      const shadow = dialog.shadowRoot;
+      if (!shadow) return;
+
+      const container = shadow.querySelector("#extended-popup-container");
+      if (this.currentEntityId !== entityId || !container) {
         this.dialog = dialog;
         this.currentEntityId = entityId;
-        this.editMode = false;
         this.setupDialogInjection(dialog, entityId);
       }
     }
@@ -84,7 +91,9 @@
         editBtn.style.cssText = "cursor: pointer; --mdc-icon-size: 20px; color: var(--primary-text-color);";
 
         const headerContainer = shadow.querySelector(".controls") || shadow.querySelector(".header") || shadow.querySelector("[slot='title']")?.parentElement || shadow;
-        headerContainer.appendChild(editBtn);
+        if (headerContainer) {
+          headerContainer.appendChild(editBtn);
+        }
       }
 
       editBtn.icon = this.editMode ? "mdi:pencil-off" : "mdi:pencil";
@@ -203,10 +212,15 @@
         bubbles: true,
         composed: true,
         detail: {
-          dialogTag: "hui-card-picker",
+          dialogTag: "hui-dialog-create-card",
           dialogParams: {
             cardPicked: async (cardConfig) => {
               this.cards.push(cardConfig);
+              await this.saveCards();
+              this.render();
+            },
+            saveCard: async (newConfig) => {
+              this.cards.push(newConfig);
               await this.saveCards();
               this.render();
             },
