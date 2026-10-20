@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Extended Entity Popup",
+        "description": "Möchtest du Extended Entity Popup einrichten?"
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Nur eine einzelne Instanz von Extended Entity Popup ist erlaubt."
+    }
+  }
+}
