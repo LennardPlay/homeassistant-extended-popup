@@ -5,13 +5,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.storage import Store
 
-try:
-    from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION
-except ImportError:
-    DOMAIN = "extended_popup"
-    STORAGE_KEY = "extended_popup_cards"
-    STORAGE_VERSION = 1
-
+from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION
 from .websocket_api import async_setup_websocket_api
 
 _LOGGER = logging.getLogger(__name__)

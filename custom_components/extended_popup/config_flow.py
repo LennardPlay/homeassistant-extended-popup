@@ -2,10 +2,7 @@
 import voluptuous as vol
 from homeassistant import config_entries
 
-try:
-    from .const import DOMAIN
-except ImportError:
-    DOMAIN = "extended_popup"
+from .const import DOMAIN
 
 
 class ExtendedPopupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
