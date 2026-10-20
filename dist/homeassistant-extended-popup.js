@@ -49,10 +49,12 @@
       if (!shadow) return;
 
       const container = shadow.querySelector("#extended-popup-container");
-      if (this.currentEntityId !== entityId || !container) {
+      if (this.currentEntityId !== entityId || !container || container.dataset.entityId !== entityId) {
         this.dialog = dialog;
         this.currentEntityId = entityId;
         this.setupDialogInjection(dialog, entityId);
+      } else {
+        this.injectMenuButton(dialog);
       }
     }
 
@@ -69,6 +71,7 @@
         const contentArea = shadow.querySelector(".content") || shadow.querySelector("ha-dialog") || shadow.querySelector("mwc-dialog") || shadow;
         contentArea.appendChild(container);
       }
+      container.dataset.entityId = entityId;
       this.container = container;
 
       this.injectMenuButton(dialog);
@@ -83,6 +86,34 @@
       const isAdmin = this.hass?.user?.is_admin;
       if (!isAdmin) return;
 
+      // Search for 3-dots menu inside shadow DOM
+      const buttonMenu = shadow.querySelector("ha-button-menu") ||
+                         shadow.querySelector("mwc-menu") ||
+                         shadow.querySelector("ha-dialog")?.querySelector("ha-button-menu") ||
+                         shadow.querySelector(".header")?.querySelector("ha-button-menu");
+
+      if (buttonMenu) {
+        let menuItem = buttonMenu.querySelector("#extended-popup-menu-item");
+        if (!menuItem) {
+          menuItem = document.createElement("ha-list-item");
+          menuItem.id = "extended-popup-menu-item";
+          menuItem.setAttribute("graphic", "icon");
+          menuItem.style.cssText = "cursor: pointer;";
+          buttonMenu.appendChild(menuItem);
+        }
+
+        const iconName = this.editMode ? "mdi:pencil-off" : "mdi:pencil";
+        const labelText = this.editMode ? "Bearbeitungsmodus verlassen" : "Bearbeitungsmodus";
+
+        menuItem.innerHTML = `<ha-icon icon="${iconName}" slot="graphic"></ha-icon>${labelText}`;
+        menuItem.onclick = (e) => {
+          e.stopPropagation();
+          this.toggleEditMode();
+        };
+        return;
+      }
+
+      // Fallback to header button if 3-dots menu element isn't directly queryable
       let editBtn = shadow.querySelector("#extended-popup-edit-toggle");
       if (!editBtn) {
         editBtn = document.createElement("ha-icon-button");
@@ -96,7 +127,7 @@
       }
 
       editBtn.icon = this.editMode ? "mdi:pencil-off" : "mdi:pencil";
-      editBtn.title = this.editMode ? "Exit edit mode" : "Edit popup cards";
+      editBtn.title = this.editMode ? "Bearbeitungsmodus verlassen" : "Bearbeitungsmodus";
       editBtn.onclick = (e) => {
         e.stopPropagation();
         this.toggleEditMode();
@@ -174,13 +205,13 @@
 
           const editBtn = document.createElement("button");
           editBtn.innerHTML = "✏️";
-          editBtn.title = "Edit card";
+          editBtn.title = "Karte bearbeiten";
           editBtn.style.cssText = "background: none; border: none; color: white; cursor: pointer; font-size: 14px;";
           editBtn.onclick = () => this.openCardEditor(index);
 
           const deleteBtn = document.createElement("button");
           deleteBtn.innerHTML = "🗑️";
-          deleteBtn.title = "Delete card";
+          deleteBtn.title = "Karte löschen";
           deleteBtn.style.cssText = "background: none; border: none; color: white; cursor: pointer; font-size: 14px;";
           deleteBtn.onclick = async () => {
             this.cards.splice(index, 1);
@@ -200,7 +231,7 @@
         const addCardBtn = document.createElement("ha-button");
         addCardBtn.setAttribute("outlined", "");
         addCardBtn.style.cssText = "width: 100%; margin-top: 8px; cursor: pointer;";
-        addCardBtn.innerHTML = "<ha-icon icon='mdi:plus'></ha-icon> Add card";
+        addCardBtn.innerHTML = "<ha-icon icon='mdi:plus'></ha-icon> Karte hinzufügen";
         addCardBtn.onclick = () => this.openCardPicker();
         this.container.appendChild(addCardBtn);
       }
@@ -220,11 +251,6 @@
           dialogTag: "hui-dialog-create-card",
           dialogParams: {
             lovelace: lovelaceCtx,
-            cardPicked: async (cardConfig) => {
-              this.cards.push(cardConfig);
-              await this.saveCards();
-              this.render();
-            },
             saveCard: async (newConfig) => {
               this.cards.push(newConfig);
               await this.saveCards();

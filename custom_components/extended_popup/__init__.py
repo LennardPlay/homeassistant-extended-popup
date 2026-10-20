@@ -15,6 +15,9 @@ URL_BASE = "/extended_popup"
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Extended Popup component."""
+    if DOMAIN in hass.data:
+        return True
+
     store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
     hass.data[DOMAIN] = {
         "store": store,
