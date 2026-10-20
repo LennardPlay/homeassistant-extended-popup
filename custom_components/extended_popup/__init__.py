@@ -30,23 +30,19 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     if os.path.exists(js_path):
         url_path = f"{URL_BASE}/homeassistant-extended-popup.js"
 
-        # Modern Home Assistant (>= 2024.7): async_register_static_paths with StaticPathConfig
-        if hasattr(hass.http, "async_register_static_paths"):
-            try:
-                from homeassistant.components.http import StaticPathConfig
-                await hass.http.async_register_static_paths(
-                    [StaticPathConfig(url_path, js_path, False)]
-                )
-            except Exception as err:
-                _LOGGER.debug("Failed async_register_static_paths: %s", err)
-        elif hasattr(hass.http, "register_static_path"):
-            hass.http.register_static_path(url_path, js_path, cache_headers=False)
+        try:
+            from homeassistant.components.http import StaticPathConfig
+            await hass.http.async_register_static_paths(
+                [StaticPathConfig(url_path, js_path, False)]
+            )
+        except Exception as err:
+            _LOGGER.error("Failed to register static path: %s", err)
 
         try:
             from homeassistant.components.frontend import add_extra_js_url
             add_extra_js_url(hass, url_path)
         except Exception as err:
-            _LOGGER.debug("Could not add_extra_js_url: %s", err)
+            _LOGGER.error("Failed to add extra JS URL: %s", err)
 
     return True
 

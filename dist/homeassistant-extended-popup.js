@@ -1,19 +1,22 @@
 /**
  * Extended Entity Popup for Home Assistant
- * Custom Lovelace Resource & HA Extension
+ * Native Lovelace Extension & HA Popup Enhancer
  */
 
 (function () {
-  console.log("Extended Entity Popup loaded");
+  console.log("Extended Entity Popup initialized");
 
   class ExtendedPopupManager {
     constructor() {
       this.editMode = false;
       this.cards = [];
+      this.cardElements = [];
       this.currentEntityId = null;
       this.hass = null;
       this.dialog = null;
       this.container = null;
+      this.draggedIndex = null;
+
       this.initObserver();
     }
 
@@ -31,15 +34,36 @@
     }
 
     checkAndInjectDialog() {
+      const newHass = this.getHass();
+      if (newHass && this.hass !== newHass) {
+        this.hass = newHass;
+        this.updateHassInCards();
+      }
+
       const dialog = document.querySelector("home-assistant")?.shadowRoot?.querySelector("ha-more-info-dialog") ||
                      document.querySelector("ha-more-info-dialog");
 
-      if (!dialog) return;
+      if (!dialog) {
+        if (this.currentEntityId !== null) {
+          this.currentEntityId = null;
+          this.editMode = false;
+          this.container = null;
+          this.cardElements = [];
+        }
+        return;
+      }
 
       const isOpened = dialog.hasAttribute("open") || dialog.open || dialog.shadowRoot?.querySelector("ha-dialog")?.open;
-      if (!isOpened) return;
+      if (!isOpened) {
+        if (this.currentEntityId !== null) {
+          this.currentEntityId = null;
+          this.editMode = false;
+          this.container = null;
+          this.cardElements = [];
+        }
+        return;
+      }
 
-      this.hass = this.getHass();
       if (!this.hass) return;
 
       const entityId = dialog.entityId || dialog._entityId || dialog.stateObj?.entity_id;
@@ -58,6 +82,15 @@
       }
     }
 
+    updateHassInCards() {
+      if (!this.hass || !this.cardElements) return;
+      for (const cardEl of this.cardElements) {
+        if (cardEl) {
+          cardEl.hass = this.hass;
+        }
+      }
+    }
+
     async setupDialogInjection(dialog, entityId) {
       const shadow = dialog.shadowRoot;
       if (!shadow) return;
@@ -68,7 +101,10 @@
         container.id = "extended-popup-container";
         container.style.cssText = "padding: 0 16px 16px 16px; display: flex; flex-direction: column; gap: 12px; margin-top: 12px;";
 
-        const contentArea = shadow.querySelector(".content") || shadow.querySelector("ha-dialog") || shadow.querySelector("mwc-dialog") || shadow;
+        const contentArea = shadow.querySelector(".content") ||
+                            shadow.querySelector("ha-dialog") ||
+                            shadow.querySelector("mwc-dialog") ||
+                            shadow;
         contentArea.appendChild(container);
       }
       container.dataset.entityId = entityId;
@@ -86,7 +122,6 @@
       const isAdmin = this.hass?.user?.is_admin;
       if (!isAdmin) return;
 
-      // Search for 3-dots menu inside shadow DOM
       const buttonMenu = shadow.querySelector("ha-button-menu") ||
                          shadow.querySelector("mwc-menu") ||
                          shadow.querySelector("ha-dialog")?.querySelector("ha-button-menu") ||
@@ -110,28 +145,7 @@
           e.stopPropagation();
           this.toggleEditMode();
         };
-        return;
       }
-
-      // Fallback to header button if 3-dots menu element isn't directly queryable
-      let editBtn = shadow.querySelector("#extended-popup-edit-toggle");
-      if (!editBtn) {
-        editBtn = document.createElement("ha-icon-button");
-        editBtn.id = "extended-popup-edit-toggle";
-        editBtn.style.cssText = "cursor: pointer; --mdc-icon-size: 20px; color: var(--primary-text-color);";
-
-        const headerContainer = shadow.querySelector(".controls") || shadow.querySelector(".header") || shadow.querySelector("[slot='title']")?.parentElement || shadow;
-        if (headerContainer) {
-          headerContainer.appendChild(editBtn);
-        }
-      }
-
-      editBtn.icon = this.editMode ? "mdi:pencil-off" : "mdi:pencil";
-      editBtn.title = this.editMode ? "Bearbeitungsmodus verlassen" : "Bearbeitungsmodus";
-      editBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.toggleEditMode();
-      };
     }
 
     toggleEditMode() {
@@ -170,6 +184,7 @@
     async render() {
       if (!this.container) return;
       this.container.innerHTML = "";
+      this.cardElements = [];
 
       const helpers = window.loadCardHelpers ? await window.loadCardHelpers() : null;
 
@@ -177,12 +192,48 @@
         const cardConfig = this.cards[index];
         const cardWrapper = document.createElement("div");
         cardWrapper.className = "extended-popup-card-wrapper";
-        cardWrapper.style.cssText = "position: relative; border-radius: 12px; overflow: hidden;";
+        cardWrapper.style.cssText = "position: relative; border-radius: 12px; transition: transform 0.15s ease, box-shadow 0.15s ease;";
+
+        if (this.editMode) {
+          cardWrapper.draggable = true;
+          cardWrapper.dataset.index = index;
+
+          cardWrapper.addEventListener("dragstart", (e) => {
+            this.draggedIndex = index;
+            e.dataTransfer.effectAllowed = "move";
+            cardWrapper.style.opacity = "0.5";
+          });
+
+          cardWrapper.addEventListener("dragend", () => {
+            cardWrapper.style.opacity = "1.0";
+            this.draggedIndex = null;
+          });
+
+          cardWrapper.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          });
+
+          cardWrapper.addEventListener("drop", async (e) => {
+            e.preventDefault();
+            if (this.draggedIndex === null || this.draggedIndex === index) return;
+            const movedCard = this.cards.splice(this.draggedIndex, 1)[0];
+            this.cards.splice(index, 0, movedCard);
+            this.draggedIndex = null;
+            await this.saveCards();
+            this.render();
+          });
+        }
 
         if (helpers) {
-          const cardEl = await helpers.createCardElement(cardConfig);
-          cardEl.hass = this.hass;
-          cardWrapper.appendChild(cardEl);
+          try {
+            const cardEl = await helpers.createCardElement(cardConfig);
+            cardEl.hass = this.hass;
+            this.cardElements.push(cardEl);
+            cardWrapper.appendChild(cardEl);
+          } catch (e) {
+            console.error("Failed to create card element:", e);
+          }
         } else {
           const fallback = document.createElement("pre");
           fallback.textContent = JSON.stringify(cardConfig, null, 2);
@@ -198,29 +249,40 @@
             background: rgba(0, 0, 0, 0.75);
             border-radius: 8px;
             display: flex;
+            align-items: center;
             gap: 4px;
             padding: 4px;
             z-index: 10;
           `;
 
-          const editBtn = document.createElement("button");
-          editBtn.innerHTML = "✏️";
-          editBtn.title = "Karte bearbeiten";
-          editBtn.style.cssText = "background: none; border: none; color: white; cursor: pointer; font-size: 14px;";
-          editBtn.onclick = () => this.openCardEditor(index);
+          const dragHandle = document.createElement("ha-icon");
+          dragHandle.setAttribute("icon", "mdi:drag");
+          dragHandle.title = "Ziehen zum Sortieren";
+          dragHandle.style.cssText = "color: white; cursor: grab; padding: 4px;";
+          toolbar.appendChild(dragHandle);
 
-          const deleteBtn = document.createElement("button");
-          deleteBtn.innerHTML = "🗑️";
+          const editBtn = document.createElement("ha-icon-button");
+          editBtn.setAttribute("icon", "mdi:pencil");
+          editBtn.title = "Karte bearbeiten";
+          editBtn.style.cssText = "color: white; --mdc-icon-size: 18px; cursor: pointer;";
+          editBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.openCardEditor(index);
+          };
+          toolbar.appendChild(editBtn);
+
+          const deleteBtn = document.createElement("ha-icon-button");
+          deleteBtn.setAttribute("icon", "mdi:delete");
           deleteBtn.title = "Karte löschen";
-          deleteBtn.style.cssText = "background: none; border: none; color: white; cursor: pointer; font-size: 14px;";
-          deleteBtn.onclick = async () => {
+          deleteBtn.style.cssText = "color: white; --mdc-icon-size: 18px; cursor: pointer;";
+          deleteBtn.onclick = async (e) => {
+            e.stopPropagation();
             this.cards.splice(index, 1);
             await this.saveCards();
             this.render();
           };
-
-          toolbar.appendChild(editBtn);
           toolbar.appendChild(deleteBtn);
+
           cardWrapper.appendChild(toolbar);
         }
 
@@ -231,7 +293,7 @@
         const addCardBtn = document.createElement("ha-button");
         addCardBtn.setAttribute("outlined", "");
         addCardBtn.style.cssText = "width: 100%; margin-top: 8px; cursor: pointer;";
-        addCardBtn.innerHTML = "<ha-icon icon='mdi:plus'></ha-icon> Karte hinzufügen";
+        addCardBtn.innerHTML = "<ha-icon icon='mdi:plus' slot='icon'></ha-icon> Karte hinzufügen";
         addCardBtn.onclick = () => this.openCardPicker();
         this.container.appendChild(addCardBtn);
       }
