@@ -7,7 +7,12 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.storage import Store
 
-from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION
+try:
+    from .const import DOMAIN, STORAGE_KEY, STORAGE_VERSION
+except ImportError:
+    DOMAIN = "extended_popup"
+    STORAGE_KEY = "extended_popup_cards"
+    STORAGE_VERSION = 1
 
 _LOGGER = logging.getLogger(__name__)
 

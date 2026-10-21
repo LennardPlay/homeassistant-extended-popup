@@ -3,6 +3,7 @@
   "name": "Extended Entity Popup",
   "codeowners": ["@user"],
   "config_flow": true,
+  "single_config_entry": true,
   "documentation": "https://github.com/user/homeassistant-extended-popup",
   "dependencies": ["frontend"],
   "integration_type": "service",
